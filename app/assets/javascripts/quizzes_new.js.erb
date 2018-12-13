@@ -1,0 +1,169 @@
+var rightAnswerCount = 0;
+var wrongAnswersArray = [];
+var questionsAskedCount = 0;
+
+$(".quizzes.new").ready(function(){
+
+  quizQuestionHandler();
+
+});
+
+
+function quizQuestionHandler(){
+
+      //check if quiz has asked 5 questions
+      if (questionsAskedCount === 5) {
+        return quizComplete();
+      }
+
+      else if(questionsAskedCount < 5){
+        $.ajax({
+          url: '/quizzes/retrieve_word_and_meaning',
+          method: 'GET',
+          dataType: 'json'
+        }).done(function(responseData){
+                  // extract the term and Meaning of the quiz question
+                  var quizTerm = responseData[0];
+                  var quizMeaning = responseData[1];
+                  console.log(quizMeaning);
+
+                  //trim the term so that the resulting array consists of the meanings only
+                  var meaningsArray = responseData.slice(1)
+                  var shuffledArray = shuffle(meaningsArray); //shuffle the contents of the array everytime;
+
+                  $('#quizQuestion').text('Term: ' + quizTerm);
+
+                  $('#option1').text(shuffledArray[0]);
+                  $('#option2').text(shuffledArray[1]);
+                  $('#option3').text(shuffledArray[2]);
+                  $('#option4').text(shuffledArray[3]);
+
+                  answerListener(quizTerm, quizMeaning);
+                  });
+      };
+};
+
+function answerListener(quizTerm, quizMeaning){
+    // var answersArrayLength = answersArray.length - 1; //find the last element of array
+
+    $('#ulOptions').click(function(event){
+
+        if (event.target.innerText === quizMeaning){
+            console.log('thats the correct answer');
+            $('#ulOptions').off("click");
+            rightAnswerCount++;
+            questionsAskedCount++;
+            console.log(rightAnswerCount);
+            console.log('Quiz Questions Asked: ' + questionsAskedCount);
+            return quizQuestionHandler();
+        }
+
+        else if (event.target.innerText !== quizMeaning){
+            console.log('wrong answer');
+            $('#ulOptions').off("click");
+            var obj = {};
+            obj["term"] = quizTerm;
+            obj["meaning"] = quizMeaning;
+            wrongAnswersArray.push(obj);
+            questionsAskedCount++;
+            console.log('Quiz Questions asked: ' + questionsAskedCount);
+            console.log(wrongAnswersArray);
+            return quizQuestionHandler();
+
+        }
+    });
+
+// });
+};
+
+function quizComplete(){
+    console.log('quiz complete');
+    var score = (rightAnswerCount/5)*100;
+    var url = '/users/' + userId + '/quizzes';
+    var lengthOfPrevQuizArray;
+
+    $.ajax({
+      url: url,
+      method: 'POST',
+      data: {
+        quiz: {
+          score: score
+        }
+      },
+      dataType: 'json'
+    }).done(function(responseData){
+      //
+      $('#quizQuestion').remove();
+      $('#ulOptions').remove();
+
+      $('.quiz').append('<div class="quizScore"> Your Quiz score is ' + responseData.score + '</div><br>');
+      $('.quiz').append('<div class="wrongAnswers"> These are the questions which you answered incorrectly: </div>');
+
+      wrongAnswersArray.forEach(function(array){
+          $('.quiz').append('<div class="wrongAnswersList"> ' + array.term + ' : ' + array.meaning + ' </div><br>');
+          console.log(array);
+      });
+
+      //reinitialize variables
+      rightAnswerCount = 0;
+      wrongAnswersArray.length = 0;
+      questionsAskedCount = 0;
+
+    }).fail(function(responseData){
+      console.log('fail');
+    });
+
+    setTimeout(function(){
+      $.ajax({
+        url: '/quizzes/previous_quiz_results',
+        method: 'GET',
+        dataType: 'json'
+      }).done(function(previousQuizData){
+          lengthOfPrevQuizArray = previousQuizData.length;
+
+          //if user only took one quiz
+          if (lengthOfPrevQuizArray === 1) {
+              return appendRedirectLinks();
+          }
+
+          else if(lengthOfPrevQuizArray > 1){
+            $('.quiz').append('<div class="previousQuizDetails"> You took a total of ' + lengthOfPrevQuizArray + ' quizzes. Below is the breakdown of your quiz history:  </div>');
+
+            for (var i = 0; i < lengthOfPrevQuizArray; i++) {
+              $('.quiz').append('<div class="previousQuizList"> Score for Quiz ' + (i + 1) + ' was ' + previousQuizData[i].score + '% </div>');
+            }
+
+              return appendRedirectLinks();
+          }
+        });
+
+    }, 1000);
+
+
+
+
+};
+
+function appendRedirectLinks(){
+    $('.quiz').append('<div class="newQuizOption"><a href="/users/' + userId + '/quizzes/new" class="newQuizLink"> Take another quiz to reinforce learning of words in your WordPad! </div>');
+    $('.quiz').append('<div class="goToWP"><a href="/users/dictionary" class="newQuizLink"> Visit your WordPad and add more words!</div>');
+};
+
+function shuffle(array) {
+    var currentIndex = array.length, temporaryValue, randomIndex;
+
+    // While there remain elements to shuffle...
+    while (0 !== currentIndex) {
+
+      // Pick a remaining element...
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex -= 1;
+
+      // And swap it with the current element.
+      temporaryValue = array[currentIndex];
+      array[currentIndex] = array[randomIndex];
+      array[randomIndex] = temporaryValue;
+    }
+
+    return array;
+};

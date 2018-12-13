@@ -1,0 +1,17 @@
+<div class="container" id="page_container">
+
+
+<%= form_for [@user, @word] do |f| %>
+
+<div class="form-group">
+    <%= f.label :term %>
+    <%= f.text_field :term %>
+</div>
+
+<div class="">
+  <%= f.submit 'Search for word!', id: "meaning_button" %>
+</div>
+
+<% end %>
+
+</div>

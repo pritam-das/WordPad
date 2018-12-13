@@ -1,0 +1,38 @@
+<div class="container" id="page_container">
+
+
+    <%= form_for [@user, @word] do |f| %>
+
+    <div class="form-group">
+        <%= f.label :term %>
+        <%= f.text_field :term %>
+    </div>
+
+    <div class="">
+      <%= f.submit 'Search for word!', id: "meaning_button" %>
+    </div>
+
+    <% end %>
+
+</div>
+
+<div id="dropdown_sort">
+  <br>
+  <select id="optionsSelector">
+    <option value="lastAdded">Order by: Last Added</option>
+    <option value="addedToday">Added today</option>
+    <option value="addedYesterday">Added yesterday</option>
+  </select>
+  <br>
+  <a href="<%= new_user_quiz_path(@user) %>" class="newQuizLink"> Take a quiz! </a>
+</div>
+
+
+<% if @words %>
+    <ul id="word-meaning">
+    <% @words.each do |word| %>
+        <li><strong><%= word.term %></strong>: <%= word.meaning %></li>
+    <% end %>
+<% else %>
+    You don't have words in your dictionary! Add?
+<% end %>
